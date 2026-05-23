@@ -302,7 +302,7 @@ class hippshipp_hooks {
 			</tr>
 			<tr>
 				<td><input type="text" name="city" value="<?php echo isset( $opt['city'] ) ? esc_attr( $opt['city'] ) : ''; ?>" class="form-control" size="32" placeholder="city"/></td>
-				<td><input type="text" name="zipcode" value="<?php echo isset( $opt['zipcode'] ) ? esc_attr( $opt['zipcode'] ) : ''; ?>" class="number form-control" size="32" placeholder="Zip code"/></td>
+				<td><input type="text" name="zipcode" value="<?php echo isset( $opt['zipcode'] ) ? esc_attr( $opt['zipcode'] ) : ''; ?>" class="form-control" size="32" placeholder="Zip code"/></td>
 			</tr>
 			<tr>
 				<td colspan="2">
