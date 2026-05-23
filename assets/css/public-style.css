@@ -1,0 +1,187 @@
+.shipped_via {
+	display:none;
+}
+
+/* order live tracking */
+.shippo-live-tracking {
+	margin: 20px 0;
+}
+
+.shippo-summary-row {
+	position: relative;
+	padding-left: 28px;
+	display: flex;
+	align-items: center;
+	margin-bottom: 20px;
+	font-size: 14px;
+}
+
+.shippo-summary-row strong {
+	margin-right: 5px;
+}
+
+.shippo-summary-eta::before {
+	content: "";
+	position: absolute;
+	left: 0;
+	top: 50%;
+	transform: translateY(-50%);
+	width: 20px;
+	height: 20px;
+	background: url('../images/clock.svg') no-repeat center center;
+	background-size: contain;
+}
+
+.shippo-summary-tracking::before {
+	content: "";
+	position: absolute;
+	left: 0;
+	top: 50%;
+	transform: translateY(-50%);
+	width: 20px;
+	height: 20px;
+	background: url('../images/box.svg') no-repeat center center;
+	background-size: contain;
+}
+
+.shippo-summary-courier::before {
+	content: "";
+	position: absolute;
+	left: 0;
+	top: 50%;
+	transform: translateY(-50%);
+	width: 20px;
+	height: 20px;
+	background: url('../images/delivery-truck.svg') no-repeat center center;
+	background-size: contain;
+}
+
+.shippo-tracking-item {
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+	gap: 10px;
+}
+
+.shippo-tracking-item.empty {
+	align-items: center;
+	background: #F1F1F1;
+	padding: 40px;
+	border-radius: 10px;
+}
+
+.shippo-latest-status {
+	position: relative;
+	background: #EBFAEC;
+	padding: 15px;
+	border-radius: 10px;
+	margin: 20px 0;
+}
+
+.shippo-status-header {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+}
+
+.shippo-status-badge {
+	background: #fff;
+	color: #0D8B3B;
+	font-weight: bold;
+	padding: 4px 12px;
+	border-radius: 4px;
+	display: inline-block;
+	margin-bottom: 10px;
+	font-size: 14px;
+}
+
+.shippo-status-time {
+	font-size: 14px;
+}
+
+.shippo-status-text {
+	position: relative;
+	padding-left: 26px;
+	min-height: 20px;
+	font-size: 14px;
+}
+
+.shippo-status-text::before {
+	content: "";
+	position: absolute;
+	left: 0;
+	top: 50%;
+	transform: translateY(-50%);
+	width: 18px;
+	height: 18px;
+	background: url('../images/info.png') no-repeat center center;
+	background-size: contain;
+}
+
+.shippo-status-location {
+	position: relative;
+	padding-left: 26px;
+	min-height: 20px;
+	font-size: 14px;
+}
+
+.shippo-status-location::before {
+	content: "";
+	position: absolute;
+	left: 0;
+	top: 50%;
+	transform: translateY(-50%);
+	width: 18px;
+	height: 18px;
+	background: url('../images/location.png') no-repeat center center;
+	background-size: contain;
+}
+
+.shippo-history-item {
+	background: #F1F1F1;
+	padding: 15px;
+	border-radius: 10px;
+	margin-bottom: 20px;
+}
+
+.shippo-history-item .shippo-status-badge {
+	color: #646464;
+}
+
+.shippo-history-toggle {
+	text-align: center;
+}
+
+.shippo-show-history {
+	position: relative;
+	padding-right: 22px;
+	font-size: 14px;
+	font-weight: bold;
+	display: inline-block;
+}
+
+.shippo-show-history::after {
+	content: "";
+	position: absolute;
+	right: 0;
+	top: 50%;
+	width: 18px;
+	height: 18px;
+	transform: translateY(-50%);
+	background: url('../images/chevron-down.svg') no-repeat center center;
+	background-size: contain;
+	transition: 0.2s ease;
+}
+
+.shippo-show-history.open::after {
+	background: url('../images/chevron-up.svg') no-repeat center center;
+	background-size: contain;
+}
+
+.shippo-history-toggle a,
+.shippo-history-toggle a:hover,
+.shippo-history-toggle a:focus {
+	text-decoration: none;
+	border: none;
+	outline: none;
+}
