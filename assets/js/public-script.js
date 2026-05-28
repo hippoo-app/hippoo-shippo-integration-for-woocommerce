@@ -35,9 +35,6 @@ jQuery(function ( $ ) {
 				nonce: shippo.nonce
 			},
 			success: function (response) {
-				if (typeof wc && wc.blocksCheckout) {
-					wc.blocksCheckout.emitEvent('updated_shipping_rates');
-				}
 				$(document.body).trigger('updated_checkout');
 			},
 		});
@@ -51,10 +48,6 @@ jQuery(function ( $ ) {
 		if (!value) value = $(`#${fieldName}`).val();
 		return value || '';
 	}
-
-	$('#place_order').on('click', function(e) {
-		e.preventDefault();
-	});
 
 	$(document).on('click', '.shippo-show-history', function(e){
 		e.preventDefault();

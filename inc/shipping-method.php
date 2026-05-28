@@ -23,16 +23,15 @@ class hippshipp_shipping_method extends WC_Shipping_Method {
 	}
 
 	public function calculate_shipping($package = array()) {
-		if ( ! session_id() ) {
-			@session_start();
-		}
+		$session_data = WC()->session->get( 'shippo_shippment' );
 
-		if ( empty( $_SESSION['shippo_shippment'][0] ) ) {
+		if ( empty($session_data[0]) ) {
 			return;
 		}
 
-		$opt   = get_option( 'shippo_options' );
-		$rates = $_SESSION['shippo_shippment'][0];
+		$rates = $session_data[0];
+
+		$opt = get_option( 'shippo_options' );
 
 		foreach ( $rates as $index => $rate ) {
 			$price = empty( $rate->amount_local ) ? $rate->amount : $rate->amount_local;

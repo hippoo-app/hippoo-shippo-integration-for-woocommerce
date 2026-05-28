@@ -15,7 +15,7 @@ function hippshipp_modal_form( $post_id ) {
 	if ( isset( $shipp[2]['internat'] ) && $shipp[2]['internat'] && ! empty( $declare ) ) {
 		$is_inter = true;
 	} elseif ( ! isset( $shipp[2]['internat'] ) ) {
-		$is_inter = ( ! empty( $shipp[1] ) && $opt['country'] !== $shipp[1]['country'] );
+		$is_inter = ( ! empty( $shipp[1] ) && ( isset( $opt['country'] ) ) && $opt['country'] !== $shipp[1]['country'] );
 	}
 	$address  = '';
 	$dunit    = get_option( 'woocommerce_dimension_unit' );
@@ -81,7 +81,7 @@ function hippshipp_modal_form( $post_id ) {
 							<tr>
 								<th>
 									<label>Certify</label> 
-									<input type="checkbox" name="certify" value="1" <?php checked( ( ! empty( $declare ) and $declare['ch_cert'] ), true ); ?>/>
+									<input type="checkbox" name="certify" value="1" <?php checked( ( ! empty( $declare ) && $declare['ch_cert'] ), true ); ?>/>
 								</th>
 								<td>
 									<fieldset>
@@ -296,7 +296,7 @@ function hippshipp_modal_form( $post_id ) {
 							<?php
 							if ( $parcels = ( new hippshipp_api() )->list_parcel() ) {
 								foreach ( $parcels as $parcel ) {
-									$selected = ( ( isset( $opt['pack']['active'] ) and $opt['pack']['active'] == $parcel->object_id ) );
+									$selected = ( ( isset( $opt['pack']['active'] ) && $opt['pack']['active'] == $parcel->object_id ) );
 									echo "<option value='" . esc_attr( $parcel->object_id ) . "' " . selected( $selected, true, false ) . '>' . esc_html( $parcel->length ) . 'x' . esc_html( $parcel->width ) . 'x' . esc_html( $parcel->height ) . ' ' . esc_html( $parcel->distance_unit ) . ' - ' . esc_html( $parcel->weight ) . ' ' . esc_html( $parcel->weight_unit ) . '</option>';
 								}
 							}
