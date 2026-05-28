@@ -119,7 +119,7 @@ jQuery(
 			function (e) {
 				e.preventDefault();
 				id = $( this ).data( 'id' );
-				tb_show( 'Order #' + id, '#TB_inline?width=740&height=520&inlineId=content-' + id, false );
+				tb_show( 'Order #' + id, '#TB_inline?width=780&height=540&inlineId=content-' + id, false );
 
 				item = $( '#TB_ajaxContent' );
 				checkbox = item.find( '[name="international"]' );

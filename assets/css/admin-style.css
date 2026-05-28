@@ -3,6 +3,24 @@
 	padding: 0;
 }
 
+#TB_ajaxContent > * {
+	box-sizing: border-box !important;
+}
+
+.wp-list-table .generate-label-btn{
+	border: 1px solid #1034B4;
+	padding: 0 6px;
+	border-radius: 5px;
+	color: #1034B4;
+	vertical-align: middle;
+}
+
+.wp-list-table .retrive-label{
+	display: inline-block;
+	padding: 0 6px;
+	vertical-align: middle;
+}
+
 #shippo-tracking-mtbox button.button{
 	width: 100%;
 	background: #32435B;
@@ -37,13 +55,6 @@
 	color: #32435B;
 	padding: 4px;
 	text-align: center;
-}
-
-.wp-list-table .generate-label-btn{
-	border: 1px solid #1034B4;
-	padding: 0 6px;
-	border-radius: 5px;
-	color: #1034B4;
 }
 
 .thickbox-loading input:focus{
@@ -239,9 +250,13 @@
 	top: 8px;
 }
 
+.domest fieldset.row {
+	width: calc(100% - 4px)
+}
+
 .domest fieldset input{
 	border: 0;
-	width: calc( 100% - 4px)
+	width: calc(100% - 4px)
 }
 
 .domest fieldset select{

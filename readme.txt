@@ -5,7 +5,7 @@ Tags: WooCommerce, Shippo, shipping, labels, e-commerce, carriers, goshippo, Woo
 Requires at least: 5.8
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.2.5
+Stable tag: 1.2.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -105,9 +105,12 @@ Hippoo App is a WooCommerce companion tool that streamlines store management wit
 5. Ability to generate label in mobile within the hippoo woocommerce app (with premium subscription)
 
 == Changelog ==
+
+= 1.2.6 =
+* Bug fixes and stability improvements
+
 = 1.2.5 =
 * Minor address bug fix
-
 
 = 1.2.4 =
 * Minor address bug fix
@@ -119,7 +122,6 @@ Hippoo App is a WooCommerce companion tool that streamlines store management wit
 * Minor Improvements
 
 = 1.2.0 =
-
 * Minor Improvements
 * Added option for customers to track shipping in My Account and WooCommerce order details.
 * Added ability to display a checkout shipping calculator for specific countries.
@@ -127,27 +129,21 @@ Hippoo App is a WooCommerce companion tool that streamlines store management wit
 * Fixed various performance and UX issues.
 
 = 1.1.5 =
-
 * Minor Improvements
 
 = 1.1.4 =
-
 * Order customer address bug fix
 
 = 1.1.3 =
-
 * Order details bug fix
 
 = 1.1.2 =
-
 * Compatibility with HPOS (High-Performance Order Storage)
 
 = 1.1.1 =
-
 * Minor Improvements 
 
 = 1.0.0 =
-
 * Initial release.
 * Seamless Shippo integration with WooCommerce.
 * Label generation from the WooCommerce dashboard.

@@ -10,7 +10,7 @@ class hippshipp_hooks {
 		add_filter( 'woocommerce_get_sections_shipping', array( $this, 'woocommerce_get_sections_shipping' ), 10, 1 );
 		add_filter( 'woocommerce_get_settings_shipping', array( $this, 'woocommerce_get_settings_shipping' ), 10, 2 );
 		add_action( 'woocommerce_admin_field_shippo_options_table', array( $this, 'woocommerce_admin_field_shippo_options_table' ), 10, 1 );
-		add_action( 'woocommerce_update_option_shippo_options_table', array( $this, 'woocommerce_update_option_shippo_options_table' ), 10, 1 );
+		add_action( 'woocommerce_admin_settings_sanitize_option', array( $this, 'woocommerce_update_option_shippo_options_table' ), 10, 3 );
 		// initialize Shippo shipping method
 		add_action( 'woocommerce_shipping_init', array( $this, 'woocommerce_shipping_init' ) );
 		add_filter( 'woocommerce_shipping_methods', array( $this, 'woocommerce_shipping_methods' ), 10, 1 );
@@ -36,17 +36,17 @@ class hippshipp_hooks {
 		// handle first-time plugin activation
 		add_action( 'activated_plugin', array( $this, 'plugin_activation' ) );
 		// create database table on plugin activation
-		register_activation_hook( hippshipp__FILE__, array( $this, 'register_activation_hook' ) );
+		register_activation_hook( HIPPSHIPP__FILE__, array( $this, 'register_activation_hook' ) );
 		// add cron job on plugin activation
-		register_activation_hook( hippshipp__FILE__, array( $this, 'schedule_weekly_cleanup' ) );
+		register_activation_hook( HIPPSHIPP__FILE__, array( $this, 'schedule_weekly_cleanup' ) );
 		// add cron job on plugin deactivation
-		register_deactivation_hook( hippshipp__FILE__, array( $this, 'unschedule_weekly_cleanup' ) );
+		register_deactivation_hook( HIPPSHIPP__FILE__, array( $this, 'unschedule_weekly_cleanup' ) );
 		// add cron job action
 		add_action( 'hippshipp_weekly_cleanup', array( $this, 'cleanup_unnecessary_metadata' ) );
 	}
 
 	function plugin_activation( $plugin ) {
-		if ( $plugin === plugin_basename( hippshipp__FILE__ ) ) {
+		if ( $plugin === plugin_basename( HIPPSHIPP__FILE__ ) ) {
 			if ( ! get_option( 'hippshipp_activated' ) ) {
 				update_option( 'hippshipp_activated', true );
 				wp_safe_redirect( admin_url( 'admin.php?page=wc-settings&tab=shipping&section=shippo' ) );
@@ -117,8 +117,8 @@ class hippshipp_hooks {
 	}	
 
 	function wp_enqueue_scripts() {
-		wp_enqueue_style( 'shp-public', hippshipp_url . 'assets/css/public-style.css', array(), hippshipp_version, 'all' );
-		wp_enqueue_script( 'shp-public', hippshipp_url . 'assets/js/public-script.js', array( 'jquery' ), hippshipp_version, true );
+		wp_enqueue_style( 'shp-public', HIPPSHIPP_URL . 'assets/css/public-style.css', array(), HIPPSHIPP_VERSION, 'all' );
+		wp_enqueue_script( 'shp-public', HIPPSHIPP_URL . 'assets/js/public-script.js', array( 'jquery' ), HIPPSHIPP_VERSION, true );
 		wp_localize_script(
 			'shp-public',
 			'shippo',
@@ -130,8 +130,8 @@ class hippshipp_hooks {
 	}
 
 	function admin_enqueue_scripts( $hook ) {
-		wp_register_style( 'shp-admin', hippshipp_url . 'assets/css/admin-style.css', array(), hippshipp_version, 'all' );
-		wp_register_script( 'shp-admin', hippshipp_url . 'assets/js/admin-script.js', array( 'jquery' ), hippshipp_version, true );
+		wp_register_style( 'shp-admin', HIPPSHIPP_URL . 'assets/css/admin-style.css', array(), HIPPSHIPP_VERSION, 'all' );
+		wp_register_script( 'shp-admin', HIPPSHIPP_URL . 'assets/js/admin-script.js', array( 'jquery' ), HIPPSHIPP_VERSION, true );
 		wp_localize_script(
 			'shp-admin',
 			'shippo',
@@ -158,7 +158,7 @@ class hippshipp_hooks {
 
 	function admin_init() {
 		$shippo_api = new hippshipp_api();
-		if ( isset( $_POST['shippo_nonce'] ) and ! wp_verify_nonce( sanitize_key( $_POST['shippo_nonce'] ), 'shippo_action' ) ) {
+		if ( isset( $_POST['shippo_nonce'] ) && ! wp_verify_nonce( sanitize_key( $_POST['shippo_nonce'] ), 'shippo_action' ) ) {
 			return;
 		}
 
@@ -174,7 +174,7 @@ class hippshipp_hooks {
 			}
 		}
 
-		if ( is_admin() and isset( $_POST['domest'] ) ) {
+		if ( is_admin() && isset( $_POST['domest'] ) ) {
 			hippshipp_helper::admin_notice( 'save success', 'success' );
 		}
 	}
@@ -210,7 +210,7 @@ class hippshipp_hooks {
 		?>
 		<div class="shippo-banner">
             <div class="logo-wrapper">
-                <img src="<?php echo esc_url( hippshipp_url . 'assets/images/icon.png' ); ?>" alt="<?php esc_attr_e( 'Hippoo Logo', 'shippo' ); ?>" class="hippoo-logo">
+                <img src="<?php echo esc_url( HIPPSHIPP_URL . 'assets/images/icon.png' ); ?>" alt="<?php esc_attr_e( 'Hippoo Logo', 'shippo' ); ?>" class="hippoo-logo">
             </div>
             <div class="content">
                 <h4><?php esc_html_e( 'Hippoo WooCommerce App: Generate Labels On the Go', 'shippo' ); ?></h4>
@@ -362,15 +362,15 @@ class hippshipp_hooks {
 				foreach ( $parcels as $parcel ) {
 					echo "
 						<tr>
-							<td><input type='radio' name='pack[active]' value='" . esc_attr( $parcel->object_id ) . "' " . ( ( isset( $opt['pack']['active'] ) and $opt['pack']['active'] == $parcel->object_id ) ? 'checked="checked"' : '' ) . '></td>
-							<td>' . esc_html( $parcel->name ) . '</td>
-							<td>' . esc_html( $parcel->length ) . '</td>
-							<td>' . esc_html( $parcel->width ) . '</td>
-							<td>' . esc_html( $parcel->height ) . '</td>
-							<td>' . esc_html( $parcel->distance_unit ) . '</td>
-							<td>' . esc_html( $parcel->weight ) . '</td>
-							<td>' . esc_html( $parcel->weight_unit ) . "</td>
-							<td><button name='parcel_del[" . esc_attr( $parcel->object_id ) . "]' onclick='return confirm(\"Do you want delete this package?\")'><span class='dashicons dashicons-trash del' style='color:red;cursor:pointer;' title='Delete'></span></button></td>
+							<td><input type='radio' name='pack[active]' value='" . esc_attr( $parcel->object_id ?? '' ) . "' " . ( ( isset( $opt['pack']['active'] ) && $opt['pack']['active'] == ($parcel->object_id ?? '') ) ? 'checked="checked"' : '' ) . '></td>
+							<td>' . esc_html( $parcel->name ?? 'N/A' ) . '</td>
+							<td>' . esc_html( $parcel->length ?? '' ) . '</td>
+							<td>' . esc_html( $parcel->width ?? '' ) . '</td>
+							<td>' . esc_html( $parcel->height ?? '' ) . '</td>
+							<td>' . esc_html( $parcel->distance_unit ?? '' ) . '</td>
+							<td>' . esc_html( $parcel->weight ?? '' ) . '</td>
+							<td>' . esc_html( $parcel->weight_unit ?? '' ) . "</td>
+							<td><button name='parcel_del[" . esc_attr( $parcel->object_id ?? '' ) . "]' onclick='return confirm(\"Do you want delete this package?\")'><span class='dashicons dashicons-trash del' style='color:red;cursor:pointer;' title='Delete'></span></button></td>
 						</tr>";
 				}
 			}
@@ -380,10 +380,10 @@ class hippshipp_hooks {
 		<?php
 	}
 
-	function woocommerce_update_option_shippo_options_table( $value ) {
+	function woocommerce_update_option_shippo_options_table( $value, $option, $raw_value ) {
 		$shippo_api = new hippshipp_api();
 
-		if ( isset( $_POST['shippo_nonce'] ) and ! wp_verify_nonce( sanitize_key( $_POST['shippo_nonce'] ), 'shippo_action' ) ) {
+		if ( isset( $_POST['shippo_nonce'] ) && ! wp_verify_nonce( sanitize_key( $_POST['shippo_nonce'] ), 'shippo_action' ) ) {
 			return;
 		}
 
@@ -419,8 +419,8 @@ class hippshipp_hooks {
 
 			$data['pack']['active'] = isset( $_POST['pack']['active'] ) ? sanitize_text_field( wp_unslash( $_POST['pack']['active'] ) ) : null;
 
-			if ( ! empty( $pack['name'] ) and ! empty( $pack['length'] ) and ! empty( $pack['height'] ) and ! empty( $pack['width'] )
-				and ! empty( $pack['distance_unit'] ) and ! empty( $pack['weight'] ) and ! empty( $pack['weight_unit'] ) ) {
+			if ( ! empty( $pack['name'] ) && ! empty( $pack['length'] ) && ! empty( $pack['height'] ) && ! empty( $pack['width'] )
+				&& ! empty( $pack['distance_unit'] ) && ! empty( $pack['weight'] ) && ! empty( $pack['weight_unit'] ) ) {
 				$ret = $shippo_api->add_parcel( $pack );
 				if ( ! isset( $ret->object_id ) ) {
 					hippshipp_helper::admin_notice( 'Parcel is not valid' );
@@ -438,13 +438,13 @@ class hippshipp_hooks {
 
 		if ( $from = get_option( 'shippo_from' ) ) {
 			if (
-				! empty( $data['fname'] ) and ! empty( $data['company'] ) and ! empty( $data['address'] ) and
-				! empty( $data['city'] ) and ! empty( $data['state'] ) and ! empty( $data['zipcode'] ) and
-				! empty( $data['country'] ) and ! empty( $data['phone'] ) and
-				$from->name == $data['fname'] and $from->company == $data['company'] and
-				$from->street1 == $data['address'] and $from->city == $data['city'] and
-				$from->state == $data['state'] and $from->zip == $data['zipcode'] and
-				$from->country == $data['country'] and $from->email == $data['email'] and $from->phone == $data['phone'] ) {
+				! empty( $data['fname'] ) && ! empty( $data['company'] ) && ! empty( $data['address'] ) &&
+				! empty( $data['city'] ) && ! empty( $data['state'] ) && ! empty( $data['zipcode'] ) &&
+				! empty( $data['country'] ) && ! empty( $data['phone'] ) &&
+				$from->name == $data['fname'] && $from->company == $data['company'] &&
+				$from->street1 == $data['address'] && $from->city == $data['city'] &&
+				$from->state == $data['state'] && $from->zip == $data['zipcode'] &&
+				$from->country == $data['country'] && $from->email == $data['email'] && $from->phone == $data['phone'] ) {
 				return;
 			}
 		}
@@ -469,7 +469,7 @@ class hippshipp_hooks {
 	}
 
 	function woocommerce_shipping_init() {
-		require_once hippshipp_path . 'inc/shipping-method.php';
+		require_once HIPPSHIPP_PATH . 'inc/shipping-method.php';
 	}
 
 	function woocommerce_shipping_methods( $methods ) {
@@ -601,7 +601,7 @@ class hippshipp_hooks {
 	}
 
 	function woocommerce_review_order_before_submit() {
-		if ( isset( $_POST['shippo_nonce'] ) and ! wp_verify_nonce( sanitize_key( $_POST['shippo_nonce'] ), 'shippo_action' ) ) {
+		if ( isset( $_POST['shippo_nonce'] ) && ! wp_verify_nonce( sanitize_key( $_POST['shippo_nonce'] ), 'shippo_action' ) ) {
 			return;
 		}
 
@@ -652,23 +652,17 @@ class hippshipp_hooks {
 		}
 
 		if ( ! empty( $rates ) ) {
-			if ( ! session_id() ) {
-				@session_start();
-			}
-			$_SESSION['shippo_shippment'] = array( $rates, $args );
+			WC()->session->set( 'shippo_shippment', array( $rates, $args ) );
 		}
 	}
 
 	function woocommerce_new_order( $order_id ) {
-		if ( ! session_id() ) {
-			@session_start();
-		}
-
 		$opt = get_option( 'shippo_options' );
 		$order = new \WC_Order( $order_id );
+		$session_data = WC()->session->get( 'shippo_shippment' );
 
-		if ( isset( $opt['en_shippo'] ) && isset( $_SESSION['shippo_shippment'] ) ) {
-			$shippment = $_SESSION['shippo_shippment']; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		if ( isset( $opt['en_shippo'] ) && isset( $session_data ) ) {
+			$shippment = $session_data; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 			$shippment_amount_local = isset( $shippment[0][0]->amount_local ) ? floatval( sanitize_text_field( $shippment[0][0]->amount_local ) ) : 0;
 			$shippment_amount = isset( $shippment[0][0]->amount ) ? floatval( sanitize_text_field( $shippment[0][0]->amount ) ) : 0;
 
@@ -679,7 +673,7 @@ class hippshipp_hooks {
 			hippshipp_helper::update_order_meta( $order_id, 'shipp_amount', $amount );
 			hippshipp_helper::update_order_meta( $order_id, 'shippment', $shippment ); 
 
-			unset( $_SESSION['shippo_shippment'] );
+			WC()->session->set( 'shippo_shippment', null );
 		} else {
 			$order_data = $order->get_data();
 			$meta = array(

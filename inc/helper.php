@@ -91,9 +91,6 @@ class hippshipp_helper {
 	}
 
 	public static function get_shippment( $address = array() ) {
-		if ( ! session_id() ) {
-			@session_start();
-		}
 		$opt = get_option( 'shippo_options' );
 		if ( empty( $opt['en_shippo'] ) or empty( $opt['shipping_rate'] ) ) {
 			return '<div class="shippo"></div>';
@@ -103,9 +100,10 @@ class hippshipp_helper {
 		if ( empty( $return->object_id ) or empty( $return->rates ) ) {
 			return '<div class="shippo-wrapper"></div>';
 		}
-		$total                        = WC()->cart->get_subtotal();
-		$_SESSION['shippo_shippment'] = $return;
-		$out                          = '<div class="shippo-wrapper">';
+		$total = WC()->cart->get_subtotal();
+		WC()->session->set( 'shippo_shippment', $return );
+
+		$out = '<div class="shippo-wrapper">';
 		// phpcs:disable PluginCheck.CodeAnalysis.ImageFunctions.NonEnqueuedImage
 		foreach ( $return->rates as $i => $rate ) {
 			$amount = $rate->amount + absint( $opt['ex_amount'] );
@@ -129,9 +127,6 @@ class hippshipp_helper {
 	}
 
 	public static function get_order_rate( $to_address ) {
-		if ( ! session_id() ) {
-			@session_start();
-		}
 		$items     = WC()->cart->get_cart();
 		$line_item = array();
 		foreach ( $items as $item => $values ) {
@@ -143,14 +138,13 @@ class hippshipp_helper {
 				'sku'         => $product->get_sku(),
 				'title'       => $product->get_name(),
 				'total_price' => (string) ( $values['line_total'] / $values['quantity'] ),
-				// "variant_title"=> "June Edition",
 				'weight'      => ( empty( $weight ) ? '1' : $weight ),
 				'weight_unit' => get_option( 'woocommerce_weight_unit' ),
 			);
 		}
 		$result = ( new hippshipp_api() )->live_rate( $to_address, $line_item );
 		if ( ! empty( $result->results ) ) {
-			$_SESSION['shippo_shippment'] = array( $result->results, $to_address );
+			WC()->session->set( 'shippo_shippment', array( $result->results, $to_address ) );
 			return $result->results;
 		}
 	}
