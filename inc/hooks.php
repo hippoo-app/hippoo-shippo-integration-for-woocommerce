@@ -659,7 +659,11 @@ class hippshipp_hooks {
 	function woocommerce_new_order( $order_id ) {
 		$opt = get_option( 'shippo_options' );
 		$order = new \WC_Order( $order_id );
-		$session_data = WC()->session->get( 'shippo_shippment' );
+
+		$session_data = null;
+		if ( function_exists( 'WC' ) && WC() && WC()->session ) {
+			$session_data = WC()->session->get( 'shippo_shippment' );
+		}
 
 		if ( isset( $opt['en_shippo'] ) && isset( $session_data ) ) {
 			$shippment = $session_data; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
