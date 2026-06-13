@@ -106,6 +106,9 @@ Hippoo App is a WooCommerce companion tool that streamlines store management wit
 
 == Changelog ==
 
+= 1.2.8 =
+* Minor bug fix
+
 = 1.2.7 =
 * Minor bug fix
 
