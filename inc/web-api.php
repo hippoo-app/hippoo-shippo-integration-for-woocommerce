@@ -431,8 +431,14 @@ class hippshipp_web_api {
 			'service' => $rate->servicelevel->display_name ?? '',
 		);
 
+		$opt = get_option( 'shippo_options', array() );
+		
 		$order = wc_get_order( $order_id );
-		$order->add_order_note( json_encode( $response ), 1 );
+		if ( empty( $opt['tracking_code'] ) ) {
+			$order->add_order_note( "Tracking number is: $label->tracking_number", 0 );
+		} else {
+			$order->add_order_note( "Tracking number is: $label->tracking_number", 1 );
+		}
 
 		return new WP_REST_Response( $response, 200 );
 	}

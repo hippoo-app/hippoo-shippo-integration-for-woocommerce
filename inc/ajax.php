@@ -75,9 +75,7 @@ class hippshipp_ajax {
 		if ( ! empty( $args['name'] ) && ! empty( $args['street1'] ) &&
 			! empty( $args['city'] ) && ! empty( $args['state'] ) && ! empty( $args['zip'] ) &&
 			! empty( $args['country'] ) && ! empty( $args['phone'] ) && ! empty( $args['email'] ) ) {
-			// echo hippshipp_helper::get_shippment($args);
 			$rates = hippshipp_helper::get_order_rate( $args );
-			$opt   = get_option( 'shippo_options' );
 			
 			wp_send_json( array() );
 		}
