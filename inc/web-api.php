@@ -386,22 +386,29 @@ class hippshipp_web_api {
 	public function get_label( $request ) {
 		$order_id   = $request->get_param( 'order_id' );
 		$rate_id    = $request->get_param( 'selected_rate_id' );
-		$customs_id = $request->get_param( 'customs_id' ) ?? '';
 
 		$shipp = hippshipp_helper::get_order_meta( $order_id, 'shippment' );
-		$rates = hippshipp_helper::get_order_meta( $order_id, 'shipping_rate_list' );
 		
 		if ( empty( $shipp ) ) {
 			return new WP_Error( 'order_not_found', 'No order data found.', array( 'status' => 404 ) );
 		}
 
-		if ( isset( $shipp[2]['internat'] ) && $shipp[2]['internat'] && empty( $customs_id ) ) {
-			return new WP_Error( 'invalid_customs_id', 'The customs_id parameter is required.', array( 'status' => 404 ) );
+		$custome = hippshipp_helper::get_order_meta( $order_id, 'custome_declare' );
+
+		$is_inter = false;
+		if ( isset( $shipp[2]['internat'] ) && $shipp[2]['internat'] && ! empty( $custome ) ) {
+			$is_inter = true;
+		} elseif ( ! isset( $shipp[2]['internat'] ) ) {
+			$is_inter = ( ! empty( $shipp[1] ) && $this->shippo_options['country'] !== $shipp[1]['country'] );
+		}
+
+		if ( $is_inter && empty( $custome ) ) {
+			return new WP_Error( 'custome_not_found', 'First you need to complete the customs information.', array( 'status' => 400 ) );
 		}
 
 		hippshipp_helper::update_order_meta( $order_id, 'live_rate_id', $rate_id );
 
-		$label = ( new hippshipp_api() )->transactions( $rate_id, $customs_id );
+		$label = ( new hippshipp_api() )->transactions( $rate_id, $custome->object_id );
 
 		if ( ! isset( $label->tracking_number ) ) {
 			$error_message = hippshipp_helper::extract_error_message( reset( $label )[0] );
@@ -416,6 +423,7 @@ class hippshipp_web_api {
 		// hippshipp_helper::delete_order_meta( $order_id, null, array( 'shippment' ) );
 		hippshipp_helper::update_order_meta( $order_id, 'retrive_label', $label );
 
+		$rates = hippshipp_helper::get_order_meta( $order_id, 'shipping_rate_list' );
 		foreach ( $rates as $rte ) {
 			if ( $rte->object_id === $rate_id ) {
 				$rate = $rte;
