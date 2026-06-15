@@ -409,7 +409,7 @@ class hippshipp_web_api {
 		}
 
 		if ( empty( $label->tracking_number ) ) {
-			$error_message = hippshipp_helper::extract_error_message( $shippment->messages[0]->text ?? 'No label available' );
+			$error_message = hippshipp_helper::extract_error_message( $label->messages[0]->text ?? 'No label available' );
 			return new WP_Error( 'get_label_failure', $error_message, array( 'status' => 400 ) );
 		}
 

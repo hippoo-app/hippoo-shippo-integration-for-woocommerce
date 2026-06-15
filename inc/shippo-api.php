@@ -54,21 +54,8 @@ class hippshipp_api {
 	}
 
 	public function shippment( $to_adder, $carrie = array(), $custom = '' ) {
-		// "g" "kg" "lb" "oz"
-		// "cm" "in" "ft" "m" "mm" "yd"
-
 		$parcel = hippshipp_helper::get_parcel();
 		$frm    = get_option( 'shippo_from' );
-		/*
-		$frm    = [
-			"name"=> "piter eshmichel",
-			"street1"=> "9243 Gabriel Rapids",
-			"city"=> "Toyberg",
-			"state"=> "NE",
-			"zip"=> "07260",
-			"country"=> "US",
-			"email"=> "shippel@shippo.com",
-		];*/
 		$args = array(
 			'address_from' => $frm->object_id,
 			'address_to'   => $to_adder,
@@ -82,12 +69,15 @@ class hippshipp_api {
 			),
 			'async'        => false,
 		);
+
 		if ( ! empty( $carrie ) ) {
 			$args['carrier_accounts'] = $carrie;
 		}
+
 		if ( ! empty( $custom ) ) {
 			$args['customs_declaration'] = $custom;
 		}
+		
 		$val = self::request( 'shipments', json_encode( $args ) );
 		return $val;
 	}
@@ -95,6 +85,7 @@ class hippshipp_api {
 	public function shippment_simple( $to_address, $parcel = '', $custom = '' ) {
 		$frm = get_option( 'shippo_from' );
 		$opt = get_option( 'shippo_options', array() );
+		
 		if ( is_array( $parcel ) ) {
 			$parcel['distance_unit'] = $parcel['distance_unit'] ?? get_option( 'woocommerce_dimension_unit' );
 			$parcel['mass_unit']     = $parcel['weight_unit'] ?? get_option( 'woocommerce_weight_unit' );
@@ -109,6 +100,7 @@ class hippshipp_api {
 				'distance_unit' => $parobj['distance_unit'] ?? get_option( 'woocommerce_dimension_unit' ),
 			);
 		}
+
 		$parcel = empty( $parcel ) ? $opt['pack']['active'] : $parcel;
 		$args   = array(
 			'address_from' => $frm->object_id,
@@ -116,6 +108,7 @@ class hippshipp_api {
 			'parcels'      => array( $parcel ),
 			'async'        => false,
 		);
+
 		if ( ! empty( $custom ) ) {
 			$args['customs_declaration'] = $custom;
 		}
@@ -125,7 +118,6 @@ class hippshipp_api {
 	}
 
 	public function transactions( $rate, $custom = '', $file_type = 'PDF' ) {
-		// "PNG" "PNG_2.3x7.5" "PDF" "PDF_2.3x7.5" "PDF_4x6" "PDF_4x8" "PDF_A4" "PDF_A5" "PDF_A6" "ZPLII"
 		$data = array(
 			'rate'            => $rate,
 			'label_file_type' => $file_type,
@@ -147,15 +139,14 @@ class hippshipp_api {
 	}
 
 	public function add_parcel( $args ) {
-		/*
-		array(
-			"name"=> "My Custom Template",
-			"length"=> "5",
-			"width"=> "5",
-			"height"=> "5",
-			"distance_unit"=> "in",//"cm" "in" "ft" "m" "mm" "yd"
-			"weight"=> "2",
-			"mass_unit"=> "lb",)//"g" "kg" "lb" "oz"*/
+		if ( isset( $args['weight_unit'] ) ) {
+			$args['weight_unit'] = strtolower( trim( $args['weight_unit'] ) );
+		}
+
+		if ( isset( $args['distance_unit'] ) ) {
+			$args['distance_unit'] = strtolower( trim( $args['distance_unit'] ) );
+		}
+
 		$resp = self::request( 'user-parcel-templates', json_encode( $args ) );
 		return $resp;
 	}
@@ -172,8 +163,6 @@ class hippshipp_api {
 	public function live_rate( $to_address, $line_item ) {
 		$frm = get_option( 'shippo_from' );
 		$opt = get_option( 'shippo_options', array() );
-
-		// var_dump(['address_from'=>$frm->object_id,'address_to'=>$to_address,'line_items'=>$line_item,'parcel'=>$opt['pack']['active']]);
 
 		return self::request(
 			'live-rates',
