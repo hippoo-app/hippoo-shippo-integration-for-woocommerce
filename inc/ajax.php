@@ -72,9 +72,9 @@ class hippshipp_ajax {
 			'email'   => isset( $_POST['email'] ) ? sanitize_email( wp_unslash( $_POST['email'] ) ) : '',
 		);
 
-		if ( ! empty( $args['name'] ) && ! empty( $args['street1'] ) &&
-			! empty( $args['city'] ) && ! empty( $args['state'] ) && ! empty( $args['zip'] ) &&
-			! empty( $args['country'] ) && ! empty( $args['phone'] ) && ! empty( $args['email'] ) ) {
+		if ( ! empty( $args['name'] ) && ! empty( $args['street1'] ) && ! empty( $args['zip'] ) &&
+			! empty( $args['city'] ) && ! empty( $args['state'] ) && ! empty( $args['country'] ) &&
+			! empty( $args['phone'] ) && ! empty( $args['email'] ) ) {
 			$rates = hippshipp_helper::get_order_rate( $args );
 			
 			wp_send_json( array() );

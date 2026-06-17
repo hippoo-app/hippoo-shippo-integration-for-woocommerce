@@ -4,7 +4,7 @@
  * Plugin URI: https://hippoo.app
  * Description: Hippoo Shippo Integration connects Shippo with the WooCommerce Admin app, allowing you to generate carrier shipping labels directly from your dashboard. Get real-time shipping rates at checkout and support for shipments. Designed by the Hippoo team to streamline your shipping process.
  * Short Description: Generate Shippo carrier labels inside WooCommerce Admin with real-time shipping rates at checkout.
- * Version: 1.2.10
+ * Version: 1.2.11
  * Author: Hippoo Team
  * License: GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly
 }
 
-define( 'HIPPSHIPP_VERSION', '1.2.10' );
+define( 'HIPPSHIPP_VERSION', '1.2.11' );
 define( 'HIPPSHIPP__FILE__', __FILE__ );
 define( 'HIPPSHIPP_PATH', plugin_dir_path( __FILE__ ) );
 define( 'HIPPSHIPP_URL', plugin_dir_url( __FILE__ ) );

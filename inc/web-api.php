@@ -113,10 +113,7 @@ class hippshipp_web_api {
 			$is_inter = ( ! empty( $shipp[1] ) && $this->shippo_options['country'] !== $shipp[1]['country'] );
 		}
 
-		$address = array();
-		if ( count( $shipp ) > 1 ) {
-			$address = $shipp[1];
-		}
+		$address = hippshipp_helper::get_order_shipping_address( $order_id );
 
 		$template = array();
 		if ( isset( $shipp[2]['tplbox'] ) ) {
