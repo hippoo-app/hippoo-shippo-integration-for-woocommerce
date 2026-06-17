@@ -11,46 +11,19 @@ function hippshipp_modal_form( $post_id ) {
 	$shipp    = hippshipp_helper::get_order_meta( $post_id, 'shippment' );
 	$custome  = hippshipp_helper::get_order_meta( $post_id, 'custome_declarex' );
 	$declare  = empty( $custome ) ? '' : $custome;
+
 	$is_inter = false;
 	if ( isset( $shipp[2]['internat'] ) && $shipp[2]['internat'] && ! empty( $declare ) ) {
 		$is_inter = true;
 	} elseif ( ! isset( $shipp[2]['internat'] ) ) {
 		$is_inter = ( ! empty( $shipp[1] ) && ( isset( $opt['country'] ) ) && $opt['country'] !== $shipp[1]['country'] );
 	}
-	$address  = '';
+
 	$dunit    = get_option( 'woocommerce_dimension_unit' );
 	$wunit    = get_option( 'woocommerce_weight_unit' );
 	$currency = get_option( 'woocommerce_currency' );
 
-	if ( ! empty( $shipp ) && count( $shipp ) > 1 ) {
-		$address = $shipp[1];
-	} else {
-		$order_data = $order->get_data();
-		$meta = array(
-			'ship_to_different_address' => ! empty( $order_data['shipping']['address_1'] ) && $order_data['shipping']['address_1'] !== $order_data['billing']['address_1'],
-			'shipping_first_name' => $order_data['shipping']['first_name'] ?: $order_data['billing']['first_name'],
-			'shipping_last_name' => $order_data['shipping']['last_name'] ?: $order_data['billing']['last_name'],
-			'shipping_company' => $order_data['shipping']['company'] ?: $order_data['billing']['company'],
-			'shipping_address_1' => $order_data['shipping']['address_1'] ?: $order_data['billing']['address_1'],
-			'shipping_address_2' => $order_data['shipping']['address_2'] ?: $order_data['billing']['address_2'],
-			'shipping_city' => $order_data['shipping']['city'] ?: $order_data['billing']['city'],
-			'shipping_state' => $order_data['shipping']['state'] ?: $order_data['billing']['state'],
-			'shipping_postcode' => $order_data['shipping']['postcode'] ?: $order_data['billing']['postcode'],
-			'shipping_country' => $order_data['shipping']['country'] ?: $order_data['billing']['country'],
-			'billing_phone' => $order_data['billing']['phone'],
-			'billing_email' => $order_data['billing']['email'],
-			'billing_first_name' => $order_data['billing']['first_name'],
-			'billing_last_name' => $order_data['billing']['last_name'],
-			'billing_company' => $order_data['billing']['company'],
-			'billing_address_1' => $order_data['billing']['address_1'],
-			'billing_address_2' => $order_data['billing']['address_2'],
-			'billing_city' => $order_data['billing']['city'],
-			'billing_state' => $order_data['billing']['state'],
-			'billing_postcode' => $order_data['billing']['postcode'],
-			'billing_country' => $order_data['billing']['country'],
-		);
-		$address = hippshipp_helper::get_live_rate_param( $meta );
-	}
+	$address = hippshipp_helper::get_order_shipping_address( $post_id );
 
 	$countries = $woocommerce->countries->get_countries();
 	$selected_country = empty( $address['country'] ) ? '' : $address['country'];

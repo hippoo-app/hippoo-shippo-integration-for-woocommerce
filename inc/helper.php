@@ -179,6 +179,52 @@ class hippshipp_helper {
 		}
 	}
 
+	public static function get_order_shipping_address( $order_id ) {
+		$shipp = self::get_order_meta( $order_id, 'shippment' );
+
+		if ( ! empty( $shipp[1] ) && is_array( $shipp[1] ) ) {
+			$addr = $shipp[1];
+			if ( ! empty( $addr['name'] ) && ! empty( $addr['street1'] ) && ! empty( $addr['zip'] ) &&
+				! empty( $addr['city'] ) && ! empty( $addr['state'] ) && ! empty( $addr['country'] ) ) {
+				return $addr;
+			}
+		}
+
+		$order = wc_get_order( $order_id );
+		if ( ! $order ) {
+			return array();
+		}
+
+		$order_data = $order->get_data();
+
+		$meta = array(
+			'ship_to_different_address' => ! empty( $order_data['shipping']['address_1'] ) && $order_data['shipping']['address_1'] !== $order_data['billing']['address_1'],
+			'shipping_first_name'  => $order_data['shipping']['first_name']  ?: $order_data['billing']['first_name'],
+			'shipping_last_name'   => $order_data['shipping']['last_name']   ?: $order_data['billing']['last_name'],
+			'shipping_company'     => $order_data['shipping']['company']     ?: $order_data['billing']['company'],
+			'shipping_address_1'   => $order_data['shipping']['address_1']   ?: $order_data['billing']['address_1'],
+			'shipping_address_2'   => $order_data['shipping']['address_2']   ?: $order_data['billing']['address_2'],
+			'shipping_city'        => $order_data['shipping']['city']        ?: $order_data['billing']['city'],
+			'shipping_state'       => $order_data['shipping']['state']       ?: $order_data['billing']['state'],
+			'shipping_postcode'    => $order_data['shipping']['postcode']    ?: $order_data['billing']['postcode'],
+			'shipping_country'     => $order_data['shipping']['country']     ?: $order_data['billing']['country'],
+
+			'billing_phone'        => $order_data['billing']['phone']        ?? '',
+			'billing_email'        => $order_data['billing']['email']        ?? '',
+			'billing_first_name'   => $order_data['billing']['first_name']   ?? '',
+			'billing_last_name'    => $order_data['billing']['last_name']    ?? '',
+			'billing_company'      => $order_data['billing']['company']      ?? '',
+			'billing_address_1'    => $order_data['billing']['address_1']    ?? '',
+			'billing_address_2'    => $order_data['billing']['address_2']    ?? '',
+			'billing_city'         => $order_data['billing']['city']         ?? '',
+			'billing_state'        => $order_data['billing']['state']        ?? '',
+			'billing_postcode'     => $order_data['billing']['postcode']     ?? '',
+			'billing_country'      => $order_data['billing']['country']      ?? '',
+		);
+
+		return self::get_live_rate_param( $meta );
+	}
+
 	public static function verify_esc_sql( $item ) {
 		return is_array( $item ) ? array_map( 'esc_sql', $item ) : esc_sql( $item );
 	}

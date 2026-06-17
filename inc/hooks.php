@@ -9,8 +9,8 @@ class hippshipp_hooks {
 		// add option tab to woocomerce shipping configuration
 		add_filter( 'woocommerce_get_sections_shipping', array( $this, 'woocommerce_get_sections_shipping' ), 10, 1 );
 		add_filter( 'woocommerce_get_settings_shipping', array( $this, 'woocommerce_get_settings_shipping' ), 10, 2 );
-		add_action( 'woocommerce_admin_field_shippo_options_table', array( $this, 'woocommerce_admin_field_shippo_options_table' ), 10, 1 );
-		add_action( 'woocommerce_admin_settings_sanitize_option', array( $this, 'woocommerce_update_option_shippo_options_table' ), 10, 3 );
+		add_action( 'woocommerce_settings_shipping', array( $this, 'woocommerce_output_settings_shipping' ), 10, 1 );
+		add_action( 'woocommerce_settings_save_shipping', array( $this, 'woocommerce_save_settings_shipping' ), 10, 3 );
 		// initialize Shippo shipping method
 		add_action( 'woocommerce_shipping_init', array( $this, 'woocommerce_shipping_init' ) );
 		add_filter( 'woocommerce_shipping_methods', array( $this, 'woocommerce_shipping_methods' ), 10, 1 );
@@ -203,7 +203,11 @@ class hippshipp_hooks {
 		return array_merge( $custom, $settings );
 	}
 
-	function woocommerce_admin_field_shippo_options_table( $value ) {
+	function woocommerce_output_settings_shipping() {
+		if( empty( $_GET[ 'section' ] ) || 'shippo' !== $_GET[ 'section' ] ) {
+			return;
+		}
+
 		global $woocommerce;
 		$opt = get_option( 'shippo_options', array() );
 		wp_nonce_field( 'shippo_action', 'shippo_nonce' );
@@ -380,7 +384,11 @@ class hippshipp_hooks {
 		<?php
 	}
 
-	function woocommerce_update_option_shippo_options_table( $value, $option, $raw_value ) {
+	function woocommerce_save_settings_shipping() {
+		if( empty( $_GET[ 'section' ] ) || 'shippo' !== $_GET[ 'section' ] ) {
+			return;
+		}
+		
 		$shippo_api = new hippshipp_api();
 
 		if ( isset( $_POST['shippo_nonce'] ) && ! wp_verify_nonce( sanitize_key( $_POST['shippo_nonce'] ), 'shippo_action' ) ) {
@@ -679,32 +687,7 @@ class hippshipp_hooks {
 
 			WC()->session->set( 'shippo_shippment', null );
 		} else {
-			$order_data = $order->get_data();
-			$meta = array(
-				'ship_to_different_address' => ! empty( $order_data['shipping']['address_1'] ) && $order_data['shipping']['address_1'] !== $order_data['billing']['address_1'],
-				'shipping_first_name' => $order_data['shipping']['first_name'] ?: $order_data['billing']['first_name'],
-				'shipping_last_name' => $order_data['shipping']['last_name'] ?: $order_data['billing']['last_name'],
-				'shipping_company' => $order_data['shipping']['company'] ?: $order_data['billing']['company'],
-				'shipping_address_1' => $order_data['shipping']['address_1'] ?: $order_data['billing']['address_1'],
-				'shipping_address_2' => $order_data['shipping']['address_2'] ?: $order_data['billing']['address_2'],
-				'shipping_city' => $order_data['shipping']['city'] ?: $order_data['billing']['city'],
-				'shipping_state' => $order_data['shipping']['state'] ?: $order_data['billing']['state'],
-				'shipping_postcode' => $order_data['shipping']['postcode'] ?: $order_data['billing']['postcode'],
-				'shipping_country' => $order_data['shipping']['country'] ?: $order_data['billing']['country'],
-				'billing_phone' => $order_data['billing']['phone'],
-				'billing_email' => $order_data['billing']['email'],
-				'billing_first_name' => $order_data['billing']['first_name'],
-				'billing_last_name' => $order_data['billing']['last_name'],
-				'billing_company' => $order_data['billing']['company'],
-				'billing_address_1' => $order_data['billing']['address_1'],
-				'billing_address_2' => $order_data['billing']['address_2'],
-				'billing_city' => $order_data['billing']['city'],
-				'billing_state' => $order_data['billing']['state'],
-				'billing_postcode' => $order_data['billing']['postcode'],
-				'billing_country' => $order_data['billing']['country'],
-			);
-
-			$address = hippshipp_helper::get_live_rate_param( $meta );
+			$address = hippshipp_helper::get_order_shipping_address( $order_id );
 
 			$address = array_map( 'sanitize_text_field', array_filter( $address ) );
 
