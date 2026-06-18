@@ -118,11 +118,14 @@ class hippshipp_api {
 	}
 
 	public function transactions( $rate, $custom = '', $file_type = 'PDF' ) {
+		$opt = get_option( 'shippo_options', array() );
+		$api = $opt['live_api'] ?? '';
+
 		$data = array(
 			'rate'            => $rate,
 			'label_file_type' => $file_type,
 			'async'           => false,
-			'test'            => true,
+			'test'            => ( stripos( $api, 'test' ) !== false ),
 		);
 
 		if ( ! empty( $custom ) ) {
