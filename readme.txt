@@ -5,7 +5,7 @@ Tags: WooCommerce, Shippo, shipping, labels, e-commerce, carriers, goshippo, Woo
 Requires at least: 5.8
 Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 1.2.12
+Stable tag: 1.2.13
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -105,6 +105,9 @@ Hippoo App is a WooCommerce companion tool that streamlines store management wit
 5. Ability to generate label in mobile within the hippoo woocommerce app (with premium subscription)
 
 == Changelog ==
+
+= 1.2.13 =
+* Fixed test/live mode for labels
 
 = 1.2.12 =
 * Fixed Shippo settings saving issue
