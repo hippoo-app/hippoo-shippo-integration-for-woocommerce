@@ -10,13 +10,14 @@ jQuery( document ).ready(
 			}
 		);
 
-		jQuery( 'body' ).on(
-			'input',
-			'.number',
-			function () {
-				this.value = this.value.replace( /[^\d]/g,'' );
-			}
-		);
+		jQuery(document).on('input','.number',function () {
+			this.value = this.value
+				.replace(/[^0-9.]/g, '')
+				.replace(/^\./, '0.')
+				.replace(/(\..*?)\./g, '$1')
+				.replace(/^0+(?=\d)/, '')
+				.replace(/^$/, '0')
+		});
 
 		/**
 		 * add ajax state for country dropdown list
@@ -33,7 +34,7 @@ jQuery( document ).ready(
 				shippo.ajaxurl,
 				{action:'ship_state_list',country:country,nonce:shippo.nonce},
 				function (resp) {
-					if (resp.state == 1 && resp.data.includes('<option')) {
+					if (resp.status == 1 && resp.data.includes('<option')) {
 						$stateFieldset.empty().html(
 							'<select name="state" class="state_select form-control">' + resp.data + '</select>'
 						);
@@ -256,8 +257,8 @@ jQuery(
 					inter = true;
 				}
 				params = {
-					action:'ship_create_shippment',
-					post_id:id,
+					action:'ship_create_shipment',
+					id:id,
 					fname:name,
 					country:cntry,
 					state:state,
@@ -276,9 +277,34 @@ jQuery(
 							params,
 							function (resp) {
 								check_shipp_create();
+								console.log(resp);
+								
 								if (resp.status == 1) {
-									div.find( '.shipp_select' ).html( resp.msg );
-									prt.find( '[data-class="shipp_select"]' ).trigger( 'click' );
+									let container = $('#shippo-rates-list-' + id);
+									let html = '<ul class="shippo-rates-list">';
+
+									resp.rates.forEach(function(rate) {
+										html += `
+											<li>
+												<div class="radio">
+													<input type="radio" name="label" class="shipp_rate" 
+														data-id="${id}" value="${rate.object_id}" />
+												</div>
+												<div class="desc">
+													<label>${rate.provider}</label>
+													<img src="${rate.provider_image_200}" width="24" height="24"/>
+													<br><small>${rate.duration_terms}</small>
+												</div>
+												<div class="currency">
+													<strong>${rate.amount_local} ${rate.currency_local}</strong>
+												</div>
+											</li>`;
+									});
+
+									html += '</ul>';
+									container.html(html);
+
+									prt.find('[data-class="shipp_select"]').trigger('click');
 								} else {
 									alert_msg( resp.msg );
 								}
@@ -354,7 +380,7 @@ jQuery(
 				);
 				$.post(
 					shippo.ajaxurl,
-					{action:'shippo_declare_custome',id:prod_id,ch_cert:ch_cert,cert_name:cert_name,eel_pfc:eel_pfc,document:doc_type,incoterm:incoterm,delivery:delivery,items:items,nonce:shippo.nonce},
+					{action:'ship_declare_custome',id:prod_id,ch_cert:ch_cert,cert_name:cert_name,eel_pfc:eel_pfc,document:doc_type,incoterm:incoterm,delivery:delivery,items:items,nonce:shippo.nonce},
 					function (resp) {
 						if (resp.status == 1) {
 							prt.find( '[data-class="shipp_create"]' ).trigger( 'click' );
@@ -376,6 +402,17 @@ jQuery(
 				$( this ).find( "input" ).prop( 'checked',true );
 			}
 		);
+
+		$( "body" ).on(
+			"change",
+			"#auto_status_change",
+			function() {
+			if ($(this).is(':checked')) {
+				$("#auto_status_select").show();
+			} else {
+				$("#auto_status_select").hide();
+			}
+		});
 
 	}
 );

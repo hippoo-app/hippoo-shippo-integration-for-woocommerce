@@ -244,7 +244,7 @@
 	background: #fff;
 }
 
-.domest fieldset span{
+.domest fieldset span.sup{
 	position: absolute;
 	right: 7px;
 	top: 8px;
@@ -352,6 +352,7 @@
 	width:100%;
 	padding:10px;
 	cursor: pointer;
+	box-sizing: border-box;
 }
 
 .shipp_select ul li.selected{
@@ -404,8 +405,8 @@
 	transform: scale(0);
 	background-color: #71B02E;
 	position: absolute;
-	left: -4px;
-	top: -4px
+	left: 0;
+	top: 0;
 }
 
 .shipp_select ul li .radio input[type="radio"]:checked::before{
@@ -480,31 +481,28 @@
 	min-height: 30px;
 }
 
-.sh_select2 span {
-	position: relative !important;
-	top: 0 !important;
-	right: 0 !important;
-	min-height: 30px !important;
-	width: 100% !important;
-	box-shadow: none !important;
-	background: transparent !important;
-}
-
 .sh_select2 .select2-selection {
 	border: 0 !important;
+	box-shadow: none !important;
 }
 
 .sh_select2 .select2-selection__rendered:hover {
 	color: #2c3338 !important;
 }
 
-.select2-container .select2-search__field {
+.sh_select2 .select2-container {
 	width: 100% !important;
 	min-width: 100% !important;
 }
+
 .select2-container .select2-dropdown {
 	box-shadow: none !important;
 	border-color: #909090 !important;
+}
+
+.select2-container .select2-search__field {
+	width: 100% !important;
+	min-width: 100% !important;
 }
 
 /* shippo wc settings page */
@@ -527,6 +525,12 @@
 .wc-shipp-table select,
 .wc-shipp-table textarea {
 	width: 100%;
+}
+
+#auto_status_select {
+	display: flex;
+	gap: 15px;
+	align-items: center;
 }
 
 /* shippo banner */
