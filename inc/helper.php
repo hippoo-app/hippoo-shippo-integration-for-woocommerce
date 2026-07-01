@@ -5,60 +5,274 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class hippshipp_helper {
 
-	public static function format_shippo_date( $raw_date ) {
+	public static function admin_notice( $msg, $type = 'error' ) {
+		add_action( 'admin_notices', function() use ( $msg, $type ) {
+			printf( '<div class="notice notice-%s is-dismissible"><p>%s</p></div>', esc_attr( $type ), esc_html( $msg ) );
+		});
+	}
+
+	public static function format_date( $raw_date ) {
 		$timestamp = strtotime( $raw_date );
-    
 		$date_format = get_option( 'date_format' );
 		$time_format = get_option( 'time_format' );
-		
-		$formatted = wp_date( $date_format . ' — ' . $time_format, $timestamp );
-		
-		return $formatted;
+		return wp_date( $date_format . ' — ' . $time_format, $timestamp );
 	}
 
-	public static function admin_notice( $msg, $type = 'error' ) {
-		add_action(
-			'admin_notices',
-			function () use ( $msg, $type ) {
-				// notice-success
-				?>
-		<div class="notice notice-<?php $type; ?> is-dismissible"><p><?php echo esc_html( $msg ); ?></p></div>
-				<?php
-			}
-		);
+	public static function get_countries() {
+		global $woocommerce;
+		return $woocommerce->countries->get_countries();
 	}
 
-	public static function get_parcel() {
-		$opt = get_option( 'shippo_options' );
-		if ( empty( $opt['pack']['active'] ) ) {
-			wp_send_json(
-				array(
-					'status' => 0,
-					'msg'    => 'Active parcel not found.',
-				)
-			);
+	public static function get_states( $country ) {
+		global $woocommerce;
+		return $woocommerce->countries->get_states( $country ) ?: [];
+	}
+
+	public static function normalize_weight_unit( $unit ) {
+		$unit = strtolower( trim( (string)$unit ) );
+		$map  = [
+			'lbs'    => 'lb',
+			'pound'  => 'lb',
+			'pounds' => 'lb',
+			'lb'     => 'lb',
+			'kg'     => 'kg',
+			'g'      => 'g',
+			'oz'     => 'oz',
+		];
+		return $map[ $unit ] ?? $unit;
+	}
+
+	public static function normalize_dimension_unit( $unit ) {
+		$unit = strtolower( trim( (string)$unit ) );
+		$map  = [
+			'cm' => 'cm',
+			'in' => 'in',
+			'ft' => 'ft',
+			'm'  => 'm',
+			'mm' => 'mm',
+			'yd' => 'yd',
+		];
+		return $map[ $unit ] ?? $unit;
+	}
+
+	public static function get_default_shipping_units() {
+		return [
+			'weight_unit'   => self::normalize_weight_unit( get_option( 'woocommerce_weight_unit', 'kg' ) ),
+			'distance_unit' => self::normalize_dimension_unit( get_option( 'woocommerce_dimension_unit', 'cm' ) ),
+		];
+	}
+
+	public static function get_order_shipping_address( $order_id ) {
+		$order = wc_get_order( $order_id );
+		if ( ! $order ) {
+			return [];
 		}
-		if ( $parcels = ( new hippshipp_api() )->list_parcel() ) {
-			foreach ( $parcels as $parcel ) {
-				if ( $opt['pack']['active'] == $parcel->object_id ) {
-					return (array) $parcel;
+
+		$shipp = hippshipp_helper::get_order_meta( $order_id, 'shippment' );
+
+		$meta = [
+			'name'      => trim( $order->get_shipping_first_name() . ' ' . $order->get_shipping_last_name() ) 
+						?: trim( $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() ),
+			'company'   => $order->get_shipping_company() ?: $order->get_billing_company(),
+			'street1'   => $order->get_shipping_address_1() ?: $order->get_billing_address_1(),
+			'street2'   => $order->get_shipping_address_2() ?: $order->get_billing_address_2(),
+			'city'      => $order->get_shipping_city() ?: $order->get_billing_city(),
+			'state'     => $order->get_shipping_state() ?: $order->get_billing_state(),
+			'zip'       => $order->get_shipping_postcode() ?: $order->get_billing_postcode(),
+			'country'   => $order->get_shipping_country() ?: $order->get_billing_country(),
+			'phone'     => $order->get_billing_phone(),
+			'email'     => $order->get_billing_email(),
+		];
+
+		return self::prepare_shippo_address( $shipp[1] ?? [], $meta );
+	}
+
+	public static function prepare_shippo_address( $input, $meta = [] ) {
+		return [
+			'name'     => $input['recipient_name'] ?? $input['name'] ?? $input['fname'] ?? $meta['name'] ?? '',
+			'company'  => $input['company'] ?? $meta['company'] ?? '',
+			'street1'  => $input['street'] ?? $input['street1'] ?? $input['adder'] ?? $input['address_1'] ?? $input['address'] ?? $meta['street1'] ?? '',
+			'street2'  => $input['street2'] ?? $input['adder2'] ?? $input['address_2'] ?? $meta['street2'] ?? '',
+			'city'     => $input['city'] ?? $meta['city'] ?? '',
+			'state'    => $input['state'] ?? $meta['state'] ?? '',
+			'zip'      => $input['zip'] ?? $input['zipcode'] ?? $input['postcode'] ?? $meta['zip'] ?? '',
+			'country'  => $input['country'] ?? $meta['country'] ?? '',
+			'phone'    => $input['phone'] ?? $meta['phone'] ?? '',
+			'email'    => $input['email'] ?? $meta['email'] ?? '',
+		];
+	}
+
+	public static function prepare_shippo_template( $input ) {
+		$default = self::get_default_shipping_units();
+
+		if ( is_array( $input ) ) {
+			return [
+				'name'          => $input['name'] ?? '',
+				'weight'        => $input['weight'] ?? 0,
+				'width'         => $input['dimensions']['width'] ?? $input['width'] ?? 0,
+				'height'        => $input['dimensions']['height'] ?? $input['height'] ?? 0,
+				'length'        => $input['dimensions']['length'] ?? $input['length'] ?? 0,
+				'distance_unit' => self::normalize_dimension_unit( $input['dimensions']['unit'] ?? $input['distance_unit'] ?? $default['distance_unit'] ),
+				'weight_unit'   => self::normalize_weight_unit( $input['weight_unit'] ?? $default['weight_unit'] ),
+			];
+		}
+
+		$parcel = null;
+
+		if ( is_string( $input ) && ! empty( $input ) ) {
+			$parcels = hippshipp_api::list_parcel();
+			foreach ( $parcels as $p ) {
+				if ( $input === $p->object_id ) {
+					$parcel = (array)$p;
+					break;
 				}
 			}
 		}
+
+		if ( empty( $parcel ) ) {
+			$parcel = self::get_active_parcel();
+		}
+
+		if ( empty( $parcel ) ) {
+			return [];
+		}
+
+		$parcel['distance_unit'] = self::normalize_dimension_unit( $parcel['distance_unit'] ?? $default['distance_unit'] );
+		$parcel['weight_unit'] = self::normalize_weight_unit( $parcel['weight_unit'] ?? $default['weight_unit'] );
+
+		return $parcel;
+	}
+
+	public static function prepare_shippo_parcel( $input = null ) {
+		$default = self::get_default_shipping_units();
+
+		if ( is_array( $input ) ) {
+			return [
+				'weight'        => $input['weight'] ?? 0,
+				'width'         => $input['dimensions']['width'] ?? $input['width'] ?? 0,
+				'height'        => $input['dimensions']['height'] ?? $input['height'] ?? 0,
+				'length'        => $input['dimensions']['length'] ?? $input['length'] ?? 0,
+				'distance_unit' => self::normalize_dimension_unit( $input['dimensions']['unit'] ?? $input['distance_unit'] ?? $default['distance_unit'] ),
+				'mass_unit'     => self::normalize_weight_unit( $input['weight_unit'] ?? $input['mass_unit'] ?? $default['weight_unit'] ),
+			];
+		}
+
+		$parcel = null;
+
+		if ( is_string( $input ) && ! empty( $input ) ) {
+			$parcels = hippshipp_api::list_parcel();
+			foreach ( $parcels as $p ) {
+				if ( $input === $p->object_id ) {
+					$parcel = (array)$p;
+					break;
+				}
+			}
+		}
+
+		if ( empty( $parcel ) ) {
+			$parcel = self::get_active_parcel();
+		}
+
+		if ( empty( $parcel ) ) {
+			return [];
+		}
+
+		$parcel['distance_unit'] = self::normalize_dimension_unit( $parcel['distance_unit'] ?? $default['distance_unit'] );
+		$parcel['mass_unit'] = self::normalize_weight_unit( $parcel['weight_unit'] ?? $parcel['mass_unit'] ?? $default['weight_unit'] );
+
+		unset( $parcel['weight_unit'] );
+
+		return $parcel;
+	}
+
+	public static function prepare_shippo_custome_declare( $input ) {
+		$default = self::get_default_shipping_units();
+
+		$items = [];
+		if ( ! empty( $input['items'] ) && is_array( $input['items'] ) ) {
+			foreach ( $input['items'] as $item ) {
+				$items[] = [
+					'description'    => sanitize_text_field( $item['description'] ?? '' ),
+					'quantity'       => absint( $item['quantity'] ?? 1 ),
+					'value_amount'   => floatval( $item['value'] ?? $item['value_amount'] ?? 0 ),
+					'net_weight'     => floatval( $item['weight'] ?? $item['net_weight'] ?? 0 ),
+					'mass_unit'      => self::normalize_weight_unit( $item['weight_unit'] ?? $item['mass_unit'] ?? $default['weight_unit'] ),
+					'value_currency' => $item['currency'] ?? $item['value_currency'] ?? get_option( 'woocommerce_currency' ),
+					'origin_country' => strtoupper( sanitize_text_field( $item['origin_country'] ?? '' ) ),
+					'tariff_number'  => sanitize_text_field( $item['tariff_number'] ?? '' ),
+				];
+			}
+		}
+
+		return [
+			'certify'             => ! empty( $input['ch_cert'] ?? $input['certify'] ?? '' ),
+			'certify_signer'      => sanitize_text_field( $input['cert_name'] ?? $input['certify_signer'] ?? '' ),
+			'eel_pfc'             => strtoupper( sanitize_text_field( $input['eel_pfc'] ?? '' ) ),
+			'contents_type'       => strtoupper( sanitize_text_field( $input['document'] ?? $input['contents_type'] ?? 'DOCUMENTS' ) ),
+			'incoterm'            => strtoupper( sanitize_text_field( $input['incoterm'] ?? 'DDP' ) ),
+			'non_delivery_option' => strtoupper( sanitize_text_field( $input['delivery'] ?? $input['non_delivery_option'] ?? 'RETURN' ) ),
+			'items'               => $items,
+		];
+	}
+
+	public static function is_international_shipment( $input ) {
+		$opt = get_option( 'shippo_options' );
+		$shop_country = $opt['country'] ?? '';
+
+		if ( is_numeric( $input ) ) {
+			$shipp = self::get_order_meta( $input, 'shippment' );
+
+			if ( ! empty( $shipp[1]['country'] ) ) {
+				$to_country = $shipp[1]['country'];
+			} else {
+				$address = self::get_order_shipping_address( $input );
+				$to_country = $address['country'] ?? '';
+			}
+		} else if ( is_array( $input ) ) {
+			$shipp = $input;
+			$to_country = $shipp[1]['country'] ?? $shipp['country'] ?? '';
+		} else {
+			return false;
+		}
+
+		if ( ! empty( $shipp[2]['internat'] ) ) {
+			return (bool)$shipp[2]['internat'];
+		}
+
+		if ( empty( $to_country ) ) {
+			return false;
+		}
+
+		return strtoupper( $to_country ) !== strtoupper( $shop_country );
+	}
+
+	public static function get_active_parcel() {
+		$opt = get_option( 'shippo_options' );
+		if ( empty( $opt['pack']['active'] ) ) {
+			return false;
+		}
+
+		$parcels = hippshipp_api::list_parcel();
+		foreach ( $parcels as $parcel ) {
+			if ( $opt['pack']['active'] === $parcel->object_id ) {
+				return (array)$parcel;
+			}
+		}
+
+		return false;
 	}
 
 	public static function update_active_parcel( $parcel_id ) {
 		if ( empty( $parcel_id ) ) {
-			return array( 'status' => false, 'msg' => 'Parcel ID is required' );
+			return [ 'status' => false, 'msg' => 'Parcel ID is required' ];
 		}
 
-		$opt = get_option( 'shippo_options', array() );
-		$shippo_api = new hippshipp_api();
-		$parcels = $shippo_api->list_parcel();
+		$opt = get_option( 'shippo_options', [] );
+		$parcels = hippshipp_api::list_parcel();
 
 		$is_in_list = false;
 		foreach ( $parcels as $parcel ) {
-			if ( $parcel->object_id === $parcel_id ) {
+			if ( $parcel_id === $parcel->object_id ) {
 				$is_in_list = true;
 				break;
 			}
@@ -68,9 +282,9 @@ class hippshipp_helper {
 			if ( empty( $opt['pack']['active'] ) ) {
 				$opt['pack']['active'] = $parcel_id;
 				update_option( 'shippo_options', $opt );
-				return array( 'status' => true, 'msg' => 'Active parcel set to new ID: ' . $parcel_id );
+				return [ 'status' => true, 'msg' => 'Active parcel set to new ID: ' . $parcel_id ];
 			} else {
-				return array( 'status' => false, 'msg' => 'Active parcel already exists' );
+				return [ 'status' => false, 'msg' => 'Active parcel already exists.' ];
 			}
 		} else {
 			if ( ! empty( $opt['pack']['active'] ) && $opt['pack']['active'] === $parcel_id ) {
@@ -78,189 +292,16 @@ class hippshipp_helper {
 					$new_active = $parcels[0]->object_id;
 					$opt['pack']['active'] = $new_active;
 					update_option( 'shippo_options', $opt );
-					return array( 'status' => true, 'msg' => 'Active parcel updated to: ' . $new_active );
+					return [ 'status' => true, 'msg' => 'Active parcel updated to: ' . $new_active ];
 				} else {
 					$opt['pack']['active'] = '';
 					update_option( 'shippo_options', $opt );
-					return array( 'status' => true, 'msg' => 'No parcels left; active cleared' );
+					return [ 'status' => true, 'msg' => 'No parcels left; active cleared.' ];
 				}
 			} else {
-				return array( 'status' => false, 'msg' => 'This parcel was not active' );
+				return [ 'status' => false, 'msg' => 'This parcel was not active.' ];
 			}
 		}
-	}
-
-	public static function get_shippment( $address = array() ) {
-		$opt = get_option( 'shippo_options' );
-		if ( empty( $opt['en_shippo'] ) or empty( $opt['shipping_rate'] ) ) {
-			return '<div class="shippo"></div>';
-		}
-
-		$return = ( new hippshipp_api() )->shippment( $address );
-		if ( empty( $return->object_id ) or empty( $return->rates ) ) {
-			return '<div class="shippo-wrapper"></div>';
-		}
-		$total = WC()->cart->get_subtotal();
-		WC()->session->set( 'shippo_shippment', $return );
-
-		$out = '<div class="shippo-wrapper">';
-		// phpcs:disable PluginCheck.CodeAnalysis.ImageFunctions.NonEnqueuedImage
-		foreach ( $return->rates as $i => $rate ) {
-			$amount = $rate->amount + absint( $opt['ex_amount'] );
-			$out   .= "
-			<div class='shippo-inner' data-total='$total'>
-				<div>
-					<img src='" . esc_url( $rate->provider_image_75 ) . "' alt=''/>
-				</div>
-				<div class='data'>
-					<input type='radio' name='shipp_rate' value='" . esc_attr( $rate->object_id ) . "' data-price='" . esc_attr( $amount ) . "'/>
-					<label>" . esc_html( $rate->provider ) . '</label>
-					' . ( empty( $rate->estimated_days ) ? '' : '<span>Delivery time: ' . esc_html( $rate->estimated_days ) . ' days</span>' ) . '
-				</div>
-				<div>
-					' . esc_html( $amount ) . ' ' . esc_html( $rate->currency ) . '
-				</div>
-			</div>';
-		}
-		// phpcs:enable
-		return "$out</div>";
-	}
-
-	public static function get_order_rate( $to_address ) {
-		$items     = WC()->cart->get_cart();
-		$line_item = array();
-		foreach ( $items as $item => $values ) {
-			$product     = $values['data'];
-			$weight      = $product->get_weight();
-			$line_item[] = array(
-				'currency'    => get_option( 'woocommerce_currency' ),
-				'quantity'    => $values['quantity'],
-				'sku'         => $product->get_sku(),
-				'title'       => $product->get_name(),
-				'total_price' => (string) ( $values['line_total'] / $values['quantity'] ),
-				'weight'      => ( empty( $weight ) ? '1' : $weight ),
-				'weight_unit' => get_option( 'woocommerce_weight_unit' ),
-			);
-		}
-		$result = ( new hippshipp_api() )->live_rate( $to_address, $line_item );
-		if ( ! empty( $result->results ) ) {
-			WC()->session->set( 'shippo_shippment', array( $result->results, $to_address ) );
-			return $result->results;
-		}
-	}
-
-	public static function get_live_rate_param( $meta ) {
-		if ( isset( $meta['ship_to_different_address'] ) ) {
-			return array(
-				'name'    => "{$meta['shipping_first_name']} {$meta['shipping_last_name']}",
-				'company' => ( empty( $meta['shipping_company'] ) ? '' : $meta['shipping_company'] ),
-				'street1' => ( empty( $meta['shipping_address_1'] ) ? '' : $meta['shipping_address_1'] ),
-				'street2' => ( empty( $meta['shipping_address_2'] ) ? '' : $meta['shipping_address_2'] ),
-				'city'    => ( empty( $meta['shipping_city'] ) ? '' : $meta['shipping_city'] ),
-				'state'   => ( empty( $meta['shipping_state'] ) ? '' : $meta['shipping_state'] ),
-				'zip'     => ( empty( $meta['shipping_postcode'] ) ? '' : $meta['shipping_postcode'] ),
-				'country' => ( empty( $meta['shipping_country'] ) ? '' : $meta['shipping_country'] ),
-				'phone'   => ( empty( $meta['billing_phone'] ) ? '' : $meta['billing_phone'] ),
-				'email'   => ( empty( $meta['billing_email'] ) ? '' : $meta['billing_email'] ),
-			);
-		} else {
-			return array(
-				'name'    => "{$meta['billing_first_name']} {$meta['billing_last_name']}",
-				'company' => ( empty( $meta['billing_company'] ) ? '' : $meta['billing_company'] ),
-				'street1' => ( empty( $meta['billing_address_1'] ) ? '' : $meta['billing_address_1'] ),
-				'street2' => ( empty( $meta['billing_address_2'] ) ? '' : $meta['billing_address_2'] ),
-				'city'    => ( empty( $meta['billing_city'] ) ? '' : $meta['billing_city'] ),
-				'state'   => ( empty( $meta['billing_state'] ) ? '' : $meta['billing_state'] ),
-				'zip'     => ( empty( $meta['billing_postcode'] ) ? '' : $meta['billing_postcode'] ),
-				'country' => ( empty( $meta['billing_country'] ) ? '' : $meta['billing_country'] ),
-				'phone'   => ( empty( $meta['billing_phone'] ) ? '' : $meta['billing_phone'] ),
-				'email'   => ( empty( $meta['billing_email'] ) ? '' : $meta['billing_email'] ),
-			);
-		}
-	}
-
-	public static function get_order_shipping_address( $order_id ) {
-		$shipp = self::get_order_meta( $order_id, 'shippment' );
-
-		if ( ! empty( $shipp[1] ) && is_array( $shipp[1] ) ) {
-			$addr = $shipp[1];
-			if ( ! empty( $addr['name'] ) && ! empty( $addr['street1'] ) && ! empty( $addr['zip'] ) &&
-				! empty( $addr['city'] ) && ! empty( $addr['state'] ) && ! empty( $addr['country'] ) ) {
-				return $addr;
-			}
-		}
-
-		$order = wc_get_order( $order_id );
-		if ( ! $order ) {
-			return array();
-		}
-
-		$order_data = $order->get_data();
-
-		$meta = array(
-			'ship_to_different_address' => ! empty( $order_data['shipping']['address_1'] ) && $order_data['shipping']['address_1'] !== $order_data['billing']['address_1'],
-			'shipping_first_name'  => $order_data['shipping']['first_name']  ?: $order_data['billing']['first_name'],
-			'shipping_last_name'   => $order_data['shipping']['last_name']   ?: $order_data['billing']['last_name'],
-			'shipping_company'     => $order_data['shipping']['company']     ?: $order_data['billing']['company'],
-			'shipping_address_1'   => $order_data['shipping']['address_1']   ?: $order_data['billing']['address_1'],
-			'shipping_address_2'   => $order_data['shipping']['address_2']   ?: $order_data['billing']['address_2'],
-			'shipping_city'        => $order_data['shipping']['city']        ?: $order_data['billing']['city'],
-			'shipping_state'       => $order_data['shipping']['state']       ?: $order_data['billing']['state'],
-			'shipping_postcode'    => $order_data['shipping']['postcode']    ?: $order_data['billing']['postcode'],
-			'shipping_country'     => $order_data['shipping']['country']     ?: $order_data['billing']['country'],
-
-			'billing_phone'        => $order_data['billing']['phone']        ?? '',
-			'billing_email'        => $order_data['billing']['email']        ?? '',
-			'billing_first_name'   => $order_data['billing']['first_name']   ?? '',
-			'billing_last_name'    => $order_data['billing']['last_name']    ?? '',
-			'billing_company'      => $order_data['billing']['company']      ?? '',
-			'billing_address_1'    => $order_data['billing']['address_1']    ?? '',
-			'billing_address_2'    => $order_data['billing']['address_2']    ?? '',
-			'billing_city'         => $order_data['billing']['city']         ?? '',
-			'billing_state'        => $order_data['billing']['state']        ?? '',
-			'billing_postcode'     => $order_data['billing']['postcode']     ?? '',
-			'billing_country'      => $order_data['billing']['country']      ?? '',
-		);
-
-		return self::get_live_rate_param( $meta );
-	}
-
-	public static function verify_esc_sql( $item ) {
-		return is_array( $item ) ? array_map( 'esc_sql', $item ) : esc_sql( $item );
-	}
-
-	public static function create_shipping_rate( $order_id ) {
-		$rates = hippshipp_helper::get_order_meta( $order_id, 'shipping_rate_list' );
-		$check = hippshipp_helper::get_order_meta( $order_id, 'live_rate_id' );
-		if ( empty( $rates ) ) {
-			return;
-		}
-
-		$out = '<ul>';
-		// phpcs:disable PluginCheck.CodeAnalysis.ImageFunctions.NonEnqueuedImage
-		foreach ( $rates as $rate ) {
-			$checked = $rate->object_id == $check ? ' checked="checked"' : '';
-			$out    .= "
-			<li>
-				<div class='radio'>
-					<input type='radio' name='label' class='shipp_rate' data-id='" . esc_attr( $order_id ) . "' value='" . esc_attr( $rate->object_id ) . "'$checked/>
-			</div>
-			<div class='desc'>
-				<label>" . esc_html( $rate->provider ) . "</label>
-				<img src='" . esc_url( $rate->provider_image_75 ) . "' width='24' height='24'/>
-				<br><small>" . esc_html( $rate->duration_terms ) . "</small>
-			</div>
-			<div class='currency'>
-				<strong>" . esc_html( $rate->amount_local ) . ' ' . esc_html( $rate->currency_local ) . '</strong>
-			</div>
-			</li>';
-		}
-		// phpcs:enable
-		return $out . '</ul>
-			<div class="sh_under">
-				<button type="submit" name="create_label" class="button label_btn" >Create Label</button>
-				<span class="back">Back</span>
-			</div>';
 	}
 
 	public static function get_order_meta( $order_id, $meta_key ) {
@@ -293,20 +334,20 @@ class hippshipp_helper {
 			)
 		);
 
-		$data = array(
+		$data = [
 			'order_id'  => sanitize_key( $order_id ),
 			'meta_key'  => $meta_key,
 			'meta_value' => maybe_serialize( $meta_value ),
-		);
-		$format = array( '%d', '%s', '%s' );
+		];
+		$format = [ '%d', '%s', '%s' ];
 
 		if ( $exists ) {
 			return $wpdb->update(
 				$table_name,
 				$data,
-				array( 'order_id' => $order_id, 'meta_key' => $meta_key ),
+				[ 'order_id' => $order_id, 'meta_key' => $meta_key ],
 				$format,
-				array( '%d', '%s' )
+				[ '%d', '%s' ]
 			);
 		} else {
 			return $wpdb->insert( $table_name, $data, $format );
@@ -314,13 +355,13 @@ class hippshipp_helper {
 		// phpcs:enable
 	}
 
-	public static function delete_order_meta( $order_id, $meta_key = null, $exclude_meta_keys = array() ) {
+	public static function delete_order_meta( $order_id, $meta_key = null, $exclude_meta_keys = [] ) {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'hippshipp_order_meta';
 
 		// phpcs:disable WordPress.DB
-		$where = array( 'order_id' => sanitize_key( $order_id ) );
-		$where_format = array( '%d' );
+		$where = [ 'order_id' => sanitize_key( $order_id ) ];
+		$where_format = [ '%d' ];
 
 		if ( ! is_null( $meta_key ) ) {
 			$where['meta_key'] = $meta_key;
@@ -328,7 +369,7 @@ class hippshipp_helper {
 		}
 
 		if ( ! empty( $exclude_meta_keys ) ) {
-			$exclude_meta_keys = array_map( 'esc_sql', (array) $exclude_meta_keys );
+			$exclude_meta_keys = array_map( 'esc_sql', (array)$exclude_meta_keys );
 			$placeholders = implode( ',', array_fill( 0, count( $exclude_meta_keys ), '%s' ) );
 			$where_sql = "meta_key NOT IN ($placeholders)";
 			$where_format = array_merge( $where_format, $exclude_meta_keys );
@@ -362,7 +403,7 @@ class hippshipp_helper {
 
 		if ( is_array( $error ) || is_object( $error ) ) {
 			$messages = [];
-			$error = (array) $error;
+			$error = (array)$error;
 
 			foreach ( $error as $key => $value ) {
 				if ( is_string( $value ) ) {
@@ -385,4 +426,5 @@ class hippshipp_helper {
 
 		return '';
 	}
+
 }
